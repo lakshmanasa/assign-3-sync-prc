@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="298ff309-a07d-42c9-b4a3-5faaee1c28b9" >
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="43386e7b-3e2c-4c23-bc27-31c26e9c0d8f" >
+		<jms:active-mq-connection username="admin" password="admin" >
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<flow name="assign-3-jms-sync-prcFlow" doc:id="7443a2fa-b8b1-4914-a49e-d725a8c79c3c" >
+		<http:listener doc:name="Listener" doc:id="a508118c-e1b5-4585-9ca4-049608b8ef8f" config-ref="HTTP_Listener_config" path="/syncp"/>
+		<ee:transform doc:name="Transform Message" doc:id="491ba5e0-a981-40b6-b209-6b18f1d004b1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	(userid: attributes.queryParams.userid1) if(attributes.queryParams.userid1 != null),
+	(userid: attributes.queryParams.userid2) if(attributes.queryParams.userid2 != null),
+	(userid: attributes.queryParams.userid3) if(attributes.queryParams.userid3 != null)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<jms:publish-consume doc:name="Publish consume" doc:id="e08f4951-1bec-4418-9fab-2842b39ab5dd" config-ref="JMS_Config" destination="assign1">
+			<jms:message outboundContentType="application/json" />
+			<jms:consume-configuration maximumWait="10" maximumWaitUnit="MINUTES" />
+		</jms:publish-consume>
+	</flow>
+</mule>
